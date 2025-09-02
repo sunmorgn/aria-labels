@@ -74,9 +74,9 @@ class Updater
      */
     private function get_latest_repository_release(): array
     {
-        // Create the request URI
+        // Create the request URI for the latest release.
         $request_uri = sprintf(
-            'https://api.github.com/repos/%s/releases',
+            'https://api.github.com/repos/%s/releases/latest',
             $this::REPOSITORY
         );
 
@@ -90,18 +90,26 @@ class Updater
         // Get the response from the API
         $request = wp_remote_get($request_uri, $args);
 
+        // Add this for debugging
+        if ( is_wp_error( $request ) ) {
+            error_log( 'Aria Labels Updater - GitHub API Error: ' . $request->get_error_message() );
+            return [];
+        }
+
         // If the API response has an error code, stop
         $response_codes = wp_remote_retrieve_response_code($request);
         if ($response_codes < 200 || $response_codes >= 300) {
+            // Log the error for debugging purposes.
+            error_log( 'Aria Labels Updater - GitHub API HTTP Error: ' . $response_codes . ' for ' . $request_uri );
+            error_log( 'Aria Labels Updater - GitHub API Response: ' . wp_remote_retrieve_body($request) );
             return [];
         }
 
         // Decode the response body
         $response = json_decode(wp_remote_retrieve_body($request), true);
 
-        // If the response is an array, return the first item
-        if (is_array($response) && !empty($response[0])) {
-            $response = $response[0];
+        if ( ! is_array( $response ) ) {
+            return [];
         }
 
         return $response;
@@ -121,8 +129,11 @@ class Updater
             return $this->github_response;
         }
 
+        // Allow forcing a check by adding ?force-check=1 to the URL.
+        $force_check = ! empty( $_GET['force-check'] );
+
         // Check for a cached transient to avoid repeated API calls.
-        $cached_response = get_transient(self::TRANSIENT_KEY);
+        $cached_response = $force_check ? false : get_transient( self::TRANSIENT_KEY );
         if (false !== $cached_response) {
             $this->github_response = $cached_response;
             return $cached_response;
