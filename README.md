@@ -32,7 +32,7 @@ The Aria Labels plugin is designed to enhance accessibility on your WordPress we
 
 ## Installation
 
-1. Download the latest release of the plugin from the [GitHub repository](https://github.com/Silver0034/Aria-Labels/releases).
+1. Download the latest release of the plugin from the [GitHub repository](https://github.com/sunmorgn/aria-labels/releases).
 2. Log in to your WordPress admin dashboard.
 3. Navigate to Plugins > Add New.
 4. Click on the "Upload Plugin" button at the top of the page.
@@ -41,9 +41,11 @@ The Aria Labels plugin is designed to enhance accessibility on your WordPress we
 
 ## Updating
 
-1. The plugin checks for updates from the GitHub repository automatically.
-2. If an update is available, you will see an update notification in your WordPress admin dashboard.
-3. Click on the "update now" link to update the plugin.
+1. After pushing your code changes, you must create a new **Release** on GitHub.
+2. The **Tag version** for the release must be higher than the plugin's current version number (e.g., `2.0.5` is higher than `2.0.4`).
+3. Once the release is published, log in to your WordPress admin dashboard.
+4. Go to **Dashboard > Updates** and click **"Check Again"** to force an immediate check.
+5. You will then see the update notification on the Plugins page.
 
 ## Developer Notes
 

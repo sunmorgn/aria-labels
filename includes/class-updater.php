@@ -262,11 +262,8 @@ class Updater
         // Get the global file system object
         global $wp_filesystem;
 
-        // Get the plugin directory
-        $directory = plugin_dir_path($this::PLUGIN_FILE);
-
         // Get the correct directory name
-        $correct_directory_name = basename($directory);
+        $correct_directory_name = dirname( self::PLUGIN_FILE );
 
         // Get the path to the downloaded directory
         $downloaded_directory_path = $result['destination'];
