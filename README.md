@@ -17,8 +17,9 @@ The Aria Labels plugin is designed to enhance accessibility on your WordPress we
 ## Features
 
 -   Adds `aria-hidden` and `aria-label` attributes to Gutenberg blocks to improve accessibility.
--   Applies attributes to the correct interactive element within a block (e.g., the `<a>` tag inside a button block).
+-   Enhances core accessibility by applying the `aria-label` to the correct interactive element within a block (e.g., the `<a>` tag inside a button block), which is more effective than the default behavior.
 -   Automatically adds `aria-hidden="true"` to decorative images (image blocks with an empty alt attribute).
+-   Works seamlessly with WordPress 6.8+ by hiding its own `aria-label` control when native support is present, preventing a confusing user interface.
 -   Provides a settings panel in the block editor, which can be moved to the "Advanced" accordion for a cleaner UI.
 -   Allows developers to configure which blocks the controls appear on via a PHP filter.
 -   The plugin can be updated directly from GitHub using the `Updater` class.
@@ -52,6 +53,19 @@ This section contains information for developers who want to contribute to the p
 -   Key Classes: The `Aria_Attributes` class in `includes/class-aria-attributes.php` handles all server-side logic, including adding user-defined ARIA attributes and automatically handling attributes for decorative images. The `Updater` class in `includes/class-updater.php` handles updates to the plugin.
 -   The `Aria_Attributes` class uses the `enqueue_block_editor_assets` action to enqueue the JavaScript file in the Gutenberg editor and the `render_block` filter to modify the block's final HTML.
 -   The `Updater` class uses the GitHub API to fetch the latest release of the plugin and update it if necessary. It also adds details to the plugin popup and modifies the transient before updating plugins.
+
+### Private Repository Updates
+
+To enable updates from a private GitHub repository, you need to create a Personal Access Token (PAT) and add it to your `wp-config.php` file.
+
+1.  **Generate a Fine-grained Personal Access Token** on GitHub. This is more secure than a classic token.
+    -   Under "Repository access", select "Only select repositories" and choose your plugin's repository (e.g., `sunmorgn/aria-labels`).
+    -   Under "Permissions" > "Repository permissions", set **Contents** to **Read-only**. No other permissions are required.
+2.  **Add the token to your `wp-config.php` file** by defining the following constant:
+
+```php
+define( 'SUNMORGN_WP_PLUGIN_UPDATES_GITHUB_TOKEN', 'your_fine_grained_github_token' );
+```
 
 ## Documentation
 

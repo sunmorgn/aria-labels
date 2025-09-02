@@ -132,20 +132,56 @@ wp.hooks.addFilter(
 				if (ariaHidden) newAriaProps['aria-hidden'] = 'true';
 				if (ariaLabel) newAriaProps['aria-label'] = ariaLabel;
 
-				// For blocks that are essentially links, we need to apply the label to the inner `<a>` tag.
-				const blocksToTargetLink = ['core/button', 'core/file', 'core/social-link'];
-				if (blocksToTargetLink.includes(name) && originalElement.props.children) {
-					const newChildren = wp.element.Children.map(
-						originalElement.props.children,
-						(child) => {
-							// The child should be the `<a>` tag.
-							if (child && child.type === 'a') {
-								return wp.element.cloneElement(child, newAriaProps);
-							}
-							return child;
+				// Helper function to find all occurrences of a tag recursively.
+				const findTags = (element, tagName) => {
+					const found = [];
+					const traverse = (el) => {
+						if (!el || typeof el !== 'object') {
+							return;
 						}
-					);
-					return wp.element.cloneElement(originalElement, {}, newChildren);
+						if (el.type === tagName) {
+							found.push(el);
+						}
+						if (el.props && el.props.children) {
+							wp.element.Children.forEach(el.props.children, traverse);
+						}
+					};
+					traverse(element);
+					return found;
+				};
+
+				// Helper function to apply props to the first occurrence of a tag.
+				const applyPropsToFirstTag = (element, tagName, propsToApply) => {
+					let applied = false;
+					const traverse = (el) => {
+						if (applied || !el || typeof el !== 'object') {
+							return el;
+						}
+						if (el.type === tagName && !applied) {
+							applied = true;
+							return wp.element.cloneElement(el, propsToApply);
+						}
+						if (el.props && el.props.children) {
+							const newChildren = wp.element.Children.map(el.props.children, traverse);
+							if (newChildren !== el.props.children) {
+								return wp.element.cloneElement(el, {}, newChildren);
+							}
+						}
+						return el;
+					};
+					return traverse(element);
+				};
+
+				const links = findTags(originalElement, 'a');
+
+				// If there is exactly one link in the block, apply the ARIA attributes to it.
+				if (links.length === 1) {
+					return applyPropsToFirstTag(originalElement, 'a', newAriaProps);
+				}
+
+				// If there are no links, but it's an image block, apply to the image.
+				if (links.length === 0 && name === 'core/image') {
+					return applyPropsToFirstTag(originalElement, 'img', newAriaProps);
 				}
 
 				// Default behavior for other blocks: apply to the wrapper.

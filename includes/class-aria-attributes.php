@@ -95,54 +95,82 @@ class Aria_Attributes
      */
     public function render_block(string $block_content, array $block): string
     {
-        $attrs      = $block['attrs'] ?? [];
-        $block_name = $block['blockName'] ?? '';
+        // Get the block type object to check for supports, if the block has a name.
+        $block_type = ! empty( $block['blockName'] ) ? \WP_Block_Type_Registry::get_instance()->get_registered( $block['blockName'] ) : null;
+        if ( ! $block_type ) {
+            return $block_content;
+        }
 
-        $has_custom_aria     = ! empty( $attrs['ariaHidden'] ) || ! empty( $attrs['ariaLabel'] );
-        $is_decorative_image = in_array( $block_name, [ 'core/image', 'core/cover' ], true ) &&
+        $attrs                         = $block['attrs'] ?? [];
+        $has_native_aria_label_support = block_has_support( $block_type, array( 'ariaLabel' ), false );
+
+        // Use the native ariaLabel attribute if it exists, otherwise use our custom one.
+        $aria_label_value  = $attrs['ariaLabel'] ?? null;
+        $aria_hidden_value = ! empty( $attrs['ariaHidden'] );
+
+        $is_decorative_image = in_array( $block['blockName'], [ 'core/image', 'core/cover' ], true ) &&
                                isset( $attrs['alt'] ) &&
                                '' === $attrs['alt'];
 
-        // Early exit if there is no content or nothing to do.
+        // Early exit if there's nothing for our plugin to do.
         if (
-            empty( $block_content ) ||
-            ( ! $has_custom_aria && ! $is_decorative_image )
+            empty( $block_content ) && ! $aria_label_value && ! $aria_hidden_value && ! $is_decorative_image
         ) {
             return $block_content;
         }
 
-        $tags = new WP_HTML_Tag_Processor($block_content);
+		// Determine the target for our ARIA attributes.
+		$tags       = new \WP_HTML_Tag_Processor( $block_content );
+		$link_count = 0;
+		while ( $tags->next_tag( array( 'tag_name' => 'a' ) ) ) {
+			$link_count ++;
+		}
 
-        // 1. Handle custom ARIA attributes set by the user.
-        if ( $has_custom_aria ) {
-            $blocks_to_target_link = [ 'core/button', 'core/file', 'core/social-link' ];
-            $target_tag_query      = null;
+		$target_tag_query = null; // Default to the block wrapper.
 
-            if ( in_array( $block_name, $blocks_to_target_link, true ) ) {
-                $target_tag_query = [ 'tag_name' => 'a' ];
-            }
+		if ( 1 === $link_count ) {
+			// If there is exactly one link, it's the primary target.
+			$target_tag_query = array( 'tag_name' => 'a' );
+		} elseif ( 0 === $link_count && 'core/image' === $block['blockName'] ) {
+			// If it's an image with no link, the image itself is the target.
+			$target_tag_query = array( 'tag_name' => 'img' );
+		}
 
-            // If a specific tag is targeted (like 'a'), find it. Otherwise, find the first tag (the wrapper).
-            if ( $tags->next_tag( $target_tag_query ) ) {
-                if ( ! empty( $attrs['ariaHidden'] ) ) {
-                    $tags->set_attribute( 'aria-hidden', 'true' );
-                }
-                if ( ! empty( $attrs['ariaLabel'] ) ) {
-                    $tags->set_attribute( 'aria-label', $attrs['ariaLabel'] );
-                }
-            }
-        }
+		// Apply attributes to the determined target.
+		$tags = new \WP_HTML_Tag_Processor( $block_content );
+		if ( $tags->next_tag( $target_tag_query ) ) {
+			if ( $aria_label_value ) {
+				// For non-wrapper targets, always apply the label. For wrappers, only if no native support.
+				if ( null !== $target_tag_query || ! $has_native_aria_label_support ) {
+					$tags->set_attribute( 'aria-label', $aria_label_value );
+				}
+			}
+			if ( $aria_hidden_value ) {
+				$tags->set_attribute( 'aria-hidden', 'true' );
+			}
+		}
 
-        // 2. Handle automatic aria-hidden for decorative images, but only if not set by the user.
-        if ( $is_decorative_image && empty( $attrs['ariaHidden'] ) ) {
-            // Re-initialize the processor on the (maybe) modified content to find the <img> tag.
-            $img_processor = new WP_HTML_Tag_Processor( $tags->get_updated_html() );
+		// If we targeted an inner link, we must remove the `aria-label` that core might have added to the wrapper.
+		if ( 1 === $link_count ) {
+			$wrapper_tags = new \WP_HTML_Tag_Processor( $tags->get_updated_html() );
+			if ( $wrapper_tags->next_tag() ) {
+				$wrapper_tags->remove_attribute( 'aria-label' );
+			}
+			$block_content = $wrapper_tags->get_updated_html();
+		} else {
+			$block_content = $tags->get_updated_html();
+		}
+
+        // --- Handle decorative images ---
+        // This runs after the main logic so it doesn't interfere.
+        if ( $is_decorative_image && ! $aria_hidden_value ) {
+            $img_processor = new \WP_HTML_Tag_Processor( $block_content );
             if ( $img_processor->next_tag( [ 'tag_name' => 'img' ] ) ) {
                 $img_processor->set_attribute( 'aria-hidden', 'true' );
-                return $img_processor->get_updated_html();
+                $block_content = $img_processor->get_updated_html();
             }
         }
 
-        return $tags->get_updated_html();
+        return $block_content;
     }
 }

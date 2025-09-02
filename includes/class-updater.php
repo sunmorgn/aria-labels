@@ -19,7 +19,7 @@ if (class_exists('Aria_Labels\Includes\Updater')) {
  */
 class Updater
 {
-    private const REPOSITORY = 'Silver0034/Aria-Labels';
+    private const REPOSITORY = 'sunmorgn/aria-labels';
     private const PLUGIN_FILE = 'aria-labels/aria-labels.php';
     private const BASENAME = 'aria-labels';
     private const TRANSIENT_KEY = 'aria_labels_github_response';
@@ -44,6 +44,9 @@ class Updater
 
         // Run function to install the update
         add_filter('upgrader_post_install', [$this, 'install_update'], 10, 3);
+
+        // Add auth token to download request for private repos
+        add_filter('http_request_args', [$this, 'add_auth_token_to_download_request'], 10, 2);
     }
 
     /**
@@ -77,8 +80,15 @@ class Updater
             $this::REPOSITORY
         );
 
+        $args = [];
+        if ( defined( 'SUNMORGN_WP_PLUGIN_UPDATES_GITHUB_TOKEN' ) && SUNMORGN_WP_PLUGIN_UPDATES_GITHUB_TOKEN ) {
+            $args['headers'] = [
+                'Authorization' => 'token ' . SUNMORGN_WP_PLUGIN_UPDATES_GITHUB_TOKEN,
+            ];
+        }
+
         // Get the response from the API
-        $request = wp_remote_get($request_uri);
+        $request = wp_remote_get($request_uri, $args);
 
         // If the API response has an error code, stop
         $response_codes = wp_remote_retrieve_response_code($request);
@@ -280,5 +290,24 @@ class Updater
 
         // Return the result
         return $result;
+    }
+
+    /**
+     * Adds the GitHub Personal Access Token to the download request for private repositories.
+     *
+     * @since 2.1.0
+     * @param array  $args The arguments for the request.
+     * @param string $url  The URL of the request.
+     * @return array The modified arguments.
+     */
+    public function add_auth_token_to_download_request($args, $url)
+    {
+        // Check if it's a GitHub API URL for our repository's zipball
+        if ( strpos($url, 'api.github.com/repos/' . self::REPOSITORY) !== false ) {
+            if ( defined('SUNMORGN_WP_PLUGIN_UPDATES_GITHUB_TOKEN') && SUNMORGN_WP_PLUGIN_UPDATES_GITHUB_TOKEN ) {
+                $args['headers']['Authorization'] = 'token ' . SUNMORGN_WP_PLUGIN_UPDATES_GITHUB_TOKEN;
+            }
+        }
+        return $args;
     }
 }
