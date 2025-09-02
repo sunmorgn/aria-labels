@@ -90,18 +90,9 @@ class Updater
         // Get the response from the API
         $request = wp_remote_get($request_uri, $args);
 
-        // Add this for debugging
-        if ( is_wp_error( $request ) ) {
-            error_log( 'Aria Labels Updater - GitHub API Error: ' . $request->get_error_message() );
-            return [];
-        }
-
         // If the API response has an error code, stop
         $response_codes = wp_remote_retrieve_response_code($request);
-        if ($response_codes < 200 || $response_codes >= 300) {
-            // Log the error for debugging purposes.
-            error_log( 'Aria Labels Updater - GitHub API HTTP Error: ' . $response_codes . ' for ' . $request_uri );
-            error_log( 'Aria Labels Updater - GitHub API Response: ' . wp_remote_retrieve_body($request) );
+        if ( is_wp_error( $request ) || $response_codes < 200 || $response_codes >= 300 ) {
             return [];
         }
 
