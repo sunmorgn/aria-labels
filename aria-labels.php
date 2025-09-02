@@ -11,7 +11,7 @@
  * Plugin Name:       Aria Labels
  * Plugin URI:        https://github.com/sunmorgn/aria-labels
  * Description:       Enhances accessibility by adding `aria-hidden` and `aria-label` attributes to Gutenberg blocks. Forked from the original by Jacob Lodes.
- * Version:           2.0.3
+ * Version:           2.0.4
  * Author:            Sunny Morgan
  * Author URI:        
  * Text Domain:       aria-labels
