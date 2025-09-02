@@ -12,21 +12,22 @@
 
 ## Overview
 
-The Aria Labels plugin is designed to enhance accessibility on your WordPress website by adding `aria-hidden` and `aria-label` attributes to Gutenberg blocks. It is developed by Jacob Lodes, and more about his work can be found at [Jacob Lodes' Website](http://jlodes.com/).
+The Aria Labels plugin is designed to enhance accessibility on your WordPress website by adding `aria-hidden` and `aria-label` attributes to Gutenberg blocks. This version is maintained by Sunny Morgan and is based on the original plugin by Jacob Lodes.
 
 ## Features
 
 -   Adds `aria-hidden` and `aria-label` attributes to Gutenberg blocks to improve accessibility.
--   The `aria-hidden` attribute is added to the block's HTML if it is set and true in the block's attributes.
--   The `aria-label` attribute is added to the block's HTML if it is set in the block's attributes.
+-   Applies attributes to the correct interactive element within a block (e.g., the `<a>` tag inside a button block).
+-   Automatically adds `aria-hidden="true"` to decorative images (image blocks with an empty alt attribute).
+-   Provides a settings panel in the block editor, which can be moved to the "Advanced" accordion for a cleaner UI.
+-   Allows developers to configure which blocks the controls appear on via a PHP filter.
 -   The plugin can be updated directly from GitHub using the `Updater` class.
--   Automatically adds `aria-hidden="true"` to decorative images (image blocks with an empty alt attribute) to improve screen reader experience.
 
 ## Usage
 
 ### Admin Side
 
-1. After installing and activating the plugin, it automatically adds `aria-hidden` and `aria-label` attributes to Gutenberg blocks.
+1. After installing and activating the plugin, controls for "Aria Hidden" and "Aria Label" will appear in the block inspector for supported blocks.
 
 ## Installation
 
@@ -54,10 +55,29 @@ This section contains information for developers who want to contribute to the p
 
 ## Documentation
 
-This section contains detailed documentation for the Aria Labels WordPress Plugin.
+This section contains documentation for configuring the Aria Labels plugin.
 
-### Updater
+### Configuration (via PHP Filter)
 
-The `Updater` class is responsible for updating the plugin. It uses the GitHub API to fetch the latest release of the plugin and update it if necessary. It also adds details to the plugin popup and modifies the transient before updating plugins.
+You can customize the plugin's behavior by using the `aria_labels_settings` filter in your theme's `functions.php` or a custom plugin.
 
-For more details, please refer to the inline comments in the code.
+**Example:**
+```php
+add_filter( 'aria_labels_settings', function( $settings ) {
+    // Move the controls out of the 'Advanced' panel and into their own panel.
+    $settings['moveToAdvanced'] = false;
+
+    // Add the 'core/list' block to the allowed list.
+    $settings['allowedBlocks'][] = 'core/list';
+
+    // Remove the 'core/image' block from the list.
+    $settings['allowedBlocks'] = array_filter( 
+        $settings['allowedBlocks'], 
+        function( $block_name ) {
+            return 'core/image' !== $block_name;
+        } 
+    );
+
+    return $settings;
+} );
+```

@@ -13,17 +13,24 @@ wp.hooks.addFilter(
 			return settings;
 		}
 
+		// Check if the block has native support for aria-label.
+		const hasNativeAriaLabelSupport = settings.supports?.ariaLabel === true;
+
 		// Define the new attributes to be added to the block.
 		const newAttributes = {
 			ariaHidden: {
 				type: 'boolean',
 				default: false,
 			},
-			ariaLabel: {
+		};
+
+		// Only add our custom ariaLabel attribute if the block doesn't have native support.
+		if ( ! hasNativeAriaLabelSupport ) {
+			newAttributes.ariaLabel = {
 				type: 'string',
 				default: '',
-			},
-		};
+			};
+		}
 
 		settings.attributes = { ...settings.attributes, ...newAttributes };
 		// Store the original edit function
@@ -53,19 +60,24 @@ wp.hooks.addFilter(
 				);
 
 				// Create a TextControl for the ariaLabel attribute
-				const ariaLabelInput = createElement(
-					TextControl,
-					{
-						label: 'Aria Label',
-						value: props.attributes.ariaLabel,
-						onChange: (newValue) => {
-							// Update the ariaLabel attribute when the TextControl value changes
-							props.setAttributes({
-								ariaLabel: newValue,
-							});
-						},
-					}
-				);
+				let ariaLabelInput = null;
+
+				// Only show our custom control if the block doesn't have native support.
+				if ( ! hasNativeAriaLabelSupport ) {
+					ariaLabelInput = createElement(
+						TextControl,
+						{
+							label: 'Aria Label',
+							value: props.attributes.ariaLabel,
+							onChange: (newValue) => {
+								// Update the ariaLabel attribute when the TextControl value changes
+								props.setAttributes({
+									ariaLabel: newValue,
+								});
+							},
+						}
+					);
+				}
 
 				let inspectorPanel;
 
@@ -75,7 +87,7 @@ wp.hooks.addFilter(
 						InspectorAdvancedControls,
 						null, // No props
 						ariaHiddenToggle,
-						ariaLabelInput
+						ariaLabelInput // This will be null and not render if native support exists.
 					);
 				} else {
 					// Place controls in their own dedicated panel.
@@ -83,7 +95,7 @@ wp.hooks.addFilter(
 						PanelBody,
 						{ title: 'Aria Labels', initialOpen: true },
 						ariaHiddenToggle,
-						ariaLabelInput
+						ariaLabelInput // This will be null and not render if native support exists.
 					);
 					inspectorPanel = createElement(InspectorControls, null, panelBody);
 				}
